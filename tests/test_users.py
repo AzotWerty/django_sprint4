@@ -135,6 +135,36 @@ def test_profile(
         unlogged_client=unlogged_client, **update_props)
 
 
+def _find_path_pattern(name, patterns):
+    from django.urls import URLPattern, URLResolver
+
+    for pattern in patterns:
+        if isinstance(pattern, URLPattern) and pattern.name == name:
+            return str(pattern.pattern)
+        if isinstance(pattern, URLResolver):
+            found = _find_path_pattern(name, pattern.url_patterns)
+            if found:
+                return found
+    return None
+
+
+@pytest.mark.django_db
+def test_profile_and_post_url_parameter_names():
+    from django.urls import get_resolver
+
+    resolver = get_resolver()
+    profile_pattern = _find_path_pattern('profile', resolver.url_patterns)
+    post_pattern = _find_path_pattern('post_detail', resolver.url_patterns)
+    edit_comment_pattern = _find_path_pattern('edit_comment', resolver.url_patterns)
+
+    assert profile_pattern and '<str:username>' in profile_pattern, (
+        'URL профиля должен использовать str-конвертер для username.')
+    assert post_pattern and '<int:post_id>' in post_pattern, (
+        'URL поста должен использовать post_id вместо pk.')
+    assert edit_comment_pattern and '<int:comment_id>' in edit_comment_pattern, (
+        'URL редактирования комментария должен использовать comment_id вместо comment_pk.')
+
+
 def _test_user_info_displayed(
         profile_user: Model, profile_user_content: str, printed_url: str
 ) -> None:

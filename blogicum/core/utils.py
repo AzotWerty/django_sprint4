@@ -42,9 +42,10 @@ def get_post_data(post_data):
 
     Возвращает: Объект или 404
     """
+    post_id = post_data.get("post_id") or post_data.get("pk")
     post = get_object_or_404(
         Post,
-        pk=post_data["pk"],
+        pk=post_id,
         pub_date__lte=timezone.now(),
         is_published=True,
         category__is_published=True,
